@@ -1,0 +1,33 @@
+apiVersion: '2021-10-01'
+location: ukwest
+name: ci-report-test
+identity:
+  type: UserAssigned
+  userAssignedIdentities:
+    /subscriptions/67e93b84-fe08-452c-80ea-175d0a3eca56/resourcegroups/rg-sp26-27100269/providers/Microsoft.ManagedIdentity/userAssignedIdentities/mi-pa4-27100269: {}
+properties:
+  containers:
+  - name: ci-report-test
+    properties:
+      image: pa427100269.azurecr.io/report-job:v1
+      resources:
+        requests:
+          cpu: 1.0
+          memoryInGb: 1.5
+      environmentVariables:
+      - name: ORDER_ID
+        value: TEST-001
+      - name: ORDER_JSON
+        value: '{"order_id":"TEST-001","items":[{"sku":"ABC","qty":2}]}'
+      - name: STORAGE_ACCOUNT_URL
+        value: https://pa427100269.blob.core.windows.net
+      - name: AZURE_CLIENT_ID
+        value: 6376ef93-c5c4-405e-bf19-ee71e5f797ef
+  imageRegistryCredentials:
+  - server: pa427100269.azurecr.io
+    username: pa427100269
+    password: 5HFkg9pxANwdTFNvkbxP8IgBL94w09LE6SQ1AAQRBIQQeCNaVsZGJQQJ99CEAClhwhEEqg7NAAACAZCRIqav
+  osType: Linux
+  restartPolicy: Never
+tags: {}
+type: Microsoft.ContainerInstance/containerGroups

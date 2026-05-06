@@ -6,7 +6,7 @@ app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 @app.route(route="orchestrators/my_orchestrator", methods=["POST"])
 @app.durable_client_input(client_name="client")
-async def http_starter(req: func.HttpRequest, client: df.DurableOrchestrationClient):
+async def http_starter(req: func.HttpRequest, client):
     order = req.get_json()
     instance_id = await client.start_new("my_orchestrator", client_input=order)
     return client.create_check_status_response(req, instance_id)
@@ -79,7 +79,6 @@ def report_activity(order: dict) -> str:
 
     client.container_groups.begin_create_or_update(rg, name, group).result()
 
-    # Poll until Succeeded or Failed (5 min max = 60 x 5s)
     for _ in range(60):
         info = client.container_groups.get(rg, name)
         state = info.instance_view.state if info.instance_view else None
@@ -87,7 +86,6 @@ def report_activity(order: dict) -> str:
             break
         time.sleep(5)
 
-    # Clean up so it stops billing
     client.container_groups.begin_delete(rg, name)
 
     return f"{os.environ['STORAGE_ACCOUNT_URL']}/reports/{order_id}.pdf"
