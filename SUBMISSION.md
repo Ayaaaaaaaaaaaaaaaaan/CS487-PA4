@@ -85,6 +85,10 @@ Successful build of `report-job:latest` from `report-job/` folder using `python:
 
 Successful build of `func-app:latest` from `function-app/` folder using the Azure Functions Python base image `mcr.microsoft.com/azure-functions/python:4-python3.11`, completed in 1388.3s.
 
+![Local Validator Test](docs/2_4_local_validator_test.png)
+
+Local test of the validator image running on port 8080 via `Invoke-WebRequest`. Response shows `StatusCode: 200` and `Content: {"valid":true,"reason":"ok","order_id":"LOCAL-1"}` confirming the FastAPI validator works correctly before pushing to ACR.
+
 ### Evidence 2.3: ACR Repositories
 
 ![ACR Repository List CLI](docs/2_5_acr_repo_list.png)
@@ -110,6 +114,10 @@ The completed `function_app.py` implements the full Durable orchestration: `my_o
 ![Local func start](docs/3_2_func_start.png)
 
 Running `func start` in `function-app/` shows all four Durable Function handlers registered: `http_starter` (HTTP trigger at `localhost:7071/api/orchestrators/my_orchestrator`), `my_orchestrator` (orchestrationTrigger), `report_activity` (activityTrigger), and `validate_activity` (activityTrigger). The Durable Functions runtime discovered all handlers successfully.
+
+![validate_activity smoke test against AKS](docs/3_2_smoke_test_validate.png)
+
+Smoke test of `validate_activity` against the live deployed AKS validator: `Invoke-RestMethod` POST to the deployed Function App HTTP starter with order `LOCAL-TEST` returns instance ID `06ddcf1f8a2641f98aba325120748e5a` and `statusQueryGetUri`, confirming the orchestrator started and `validate_activity` was able to reach the AKS validator endpoint successfully.
 
 ---
 
@@ -139,9 +147,13 @@ Polling the `statusQueryGetUri` shows `runtimeStatus: Failed` with error `KeyErr
 
 ### Evidence 5.1: AKS Cluster
 
-![AKS Nodes](docs/5_1_aks_nodes.png)
+![AKS Portal Overview](docs/5_1_aks_overview_portal.png)
 
-`az aks get-credentials` merged context `pa4-27100269` and `kubectl get nodes` shows node `aks-nodepool1-39806882-vmss000000` in Ready status with Kubernetes v1.34.6, confirming 1 node of size `Standard_B2s` in resource group `rg-sp26-27100269`, UK West.
+The AKS cluster `pa4-27100269` portal overview shows Power state Running, Cluster operation status Succeeded, Location UK West, Kubernetes version 1.34.6, SKU Base, and 1 node pool in resource group `rg-sp26-27100269`, confirming the cluster is fully deployed and operational.
+
+![AKS Nodes CLI](docs/5_1_aks_nodes.png)
+
+`az aks get-credentials` merged context `pa4-27100269` and `kubectl get nodes` shows node `aks-nodepool1-39806882-vmss000000` in Ready status with Kubernetes v1.34.6, confirming the single `Standard_B2s` node is ready.
 
 ### Evidence 5.2: Kubernetes Nodes and Pods
 
@@ -177,9 +189,9 @@ The Function App `pa4-27100269-func` Environment variables page shows `VALIDATE_
 
 ### Evidence 5.6: AKS Idle Behavior
 
-![AKS Nodes](docs/5_1_aks_nodes.png)
+![AKS Idle Portal](docs/5_6_aks_idle.png)
 
-The AKS node `aks-nodepool1-39806882-vmss000000` shows AGE of 2m51s and remains in Ready status regardless of whether orders are being processed. Unlike ACI, AKS has no scale-to-zero — the `Standard_B2s` node VM keeps running and billing even when there are no active orders.
+The AKS portal overview shows Power state Running and Cluster operation status Succeeded even when no orders are being processed. Unlike ACI which does not exist between runs, the AKS `Standard_B2s` node VM keeps running and billing continuously — this is why AKS is only appropriate for the long-lived validator service, not for the short-lived report generator.
 
 ---
 
